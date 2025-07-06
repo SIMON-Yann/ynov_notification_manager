@@ -34,7 +34,7 @@ jobs:
           
            # Parse list of failed test titles from JSON output
           if [ -f jest-results.json ]; then
-            FAILURES=$(jq -r '.testResults[].assertionResults[] | select(.status=="failed") | "- " + .fullName' jest-results.json | xargs -0)
+            FAILURES=$(jq -r '.testResults[].assertionResults[] | select(.status=="failed") | "- " + .fullName' jest-results.json)
             if [ -z "$FAILURES" ]; then
               FAILURES="None 🎉"
             fi
