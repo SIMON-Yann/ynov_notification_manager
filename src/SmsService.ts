@@ -1,5 +1,6 @@
+import UserService from "./UserService";
 
-class SmsService {
+export default class SmsService {
   constructor(private userService: UserService) {}
   
   public send(userId: string, message: string): Promise<void> {

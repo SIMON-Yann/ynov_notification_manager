@@ -1,4 +1,4 @@
-type Settings = {
+export type Settings = {
   notificationEnabled: boolean;
   notificationByEmail: boolean;
   notificationBySms: boolean;
@@ -14,7 +14,7 @@ type User = {
   errors: string[];
 }
 
-class UserService {
+export default class UserService {
   private users: { [id: string]: User } = {};
 
   getUserPhoneNumber(userId: string): string | null {
