@@ -9,13 +9,17 @@ type User = {
   id: string;
   name: string;
   email?: string;
-  phone: string;
-  settings: Settings;
+  phone?: string;
+  settings?: Settings;
   errors: string[];
 }
 
 export default class UserService {
   private users: { [id: string]: User } = {};
+  
+  addUser(user: User) {
+    this.users[user.id] = user;
+  }
 
   getUserPhoneNumber(userId: string): string | null {
     const user = this.users[userId];
@@ -32,7 +36,12 @@ export default class UserService {
   getUserSettings(userId: string): Settings | null {
     const user = this.users[userId];
     if (!user) return null;
-    return user.settings;
+    return user.settings || {
+      notificationEnabled: true,
+      notificationByEmail: true,
+      notificationBySms: false,
+      notificationFrequency: 'immediate'
+    };
   }
 
   cannotSendNotification({userId, error}: { userId: string, error: string }): void {
