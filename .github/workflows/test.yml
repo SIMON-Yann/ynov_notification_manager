@@ -34,7 +34,7 @@ jobs:
           
            # Parse list of failed test titles from JSON output
           if [ -f jest-results.json ]; then
-            FAILURES=$(jq -r '.testResults[].assertionResults[] | select(.status=="failed") | "- " + .fullName' jest-results.json)
+            FAILURES=$(jq -r '.testResults[].assertionResults[] | select(.status=="failed") | "- " + .fullName' jest-results.json | xargs -0)
             if [ -z "$FAILURES" ]; then
               FAILURES="None 🎉"
             fi
@@ -46,7 +46,7 @@ jobs:
           echo "$FAILURES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           
-          THRESHOLDS=$(grep 'coverage threshold' jest.console.txt)
+          THRESHOLDS=$(grep 'coverage threshold' jest.console.txt || true)
           if [ -z "$THRESHOLDS" ]; then
             THRESHOLDS="None"
           fi
