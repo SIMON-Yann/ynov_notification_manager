@@ -46,15 +46,7 @@ jobs:
           echo "$FAILURES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           
-          # Parse coverage threshold failures from jest-results.json message (if any)
-          if [ -f jest-results.json ]; then
-            THRESHOLDS=$(jq -r '.testResults[] | select(.message | test("coverage threshold")) | .message' jest-results.json)
-            if [ -z "$THRESHOLDS" ]; then
-              THRESHOLDS="None 🎉"
-            fi
-          else
-            THRESHOLDS="Threshold data not found!"
-          fi
+          THRESHOLDS=$(grep 'coverage threshold' jest.console.txt)
           echo "COVERAGE_THRESHOLDS<<EOF" >> $GITHUB_ENV
           echo "$THRESHOLDS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -83,6 +75,8 @@ jobs:
             
             let body = `## Jest Report\n`;
             body += "```" + coverageReport + "\n```\n";
+            console.log(failedTests);
+            console.log(thresholds);
             if(failedTests && !failedTests.includes("None")) {
               body += `### ❌ Failed Tests\n${failedTests}\n`;
             }
