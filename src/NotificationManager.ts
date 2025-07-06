@@ -1,4 +1,10 @@
-class NotificationManager {
+import ClockService from "./ClockService";
+import EmailService from "./EmailService";
+import Scheduler from "./Scheduler";
+import SmsService from "./SmsService";
+import UserService, {Settings} from "./UserService";
+
+export default class NotificationManager {
   constructor(private email: EmailService,
               private sms: SmsService,
               private userService: UserService,

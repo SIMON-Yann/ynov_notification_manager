@@ -1,4 +1,6 @@
-class EmailService {
+import UserService from "./UserService";
+
+export default class EmailService {
   
   constructor(private userService: UserService) {}
   

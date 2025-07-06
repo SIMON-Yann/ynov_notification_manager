@@ -1,0 +1,101 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22.11.0
+        id: test
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm run test:report
+
+      - name: Read coverage summary
+        id: coverage
+        if: always()
+        run: |
+          echo 'COVERAGE_REPORT<<EOF' >> $GITHUB_ENV
+          cat coverage/coverage.txt >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          
+           # Parse list of failed test titles from JSON output
+          if [ -f jest-results.json ]; then
+            FAILURES=$(jq -r '.testResults[].assertionResults[] | select(.status=="failed") | "- " + .fullName' jest-results.json | xargs -0)
+            if [ -z "$FAILURES" ]; then
+              FAILURES="None 🎉"
+            fi
+          else
+            FAILURES="Test result file not found!"
+          fi
+          
+          echo "FAILED_TESTS<<EOF" >> $GITHUB_ENV
+          echo "$FAILURES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          THRESHOLDS=$(grep 'coverage threshold' jest.console.txt)
+          echo "COVERAGE_THRESHOLDS<<EOF" >> $GITHUB_ENV
+          echo "$THRESHOLDS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Comment coverage on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverageReport = process.env.COVERAGE_REPORT;
+            const failedTests = process.env.FAILED_TESTS || "";
+            const thresholds = process.env.COVERAGE_THRESHOLDS || "";
+            const prNumber = context.payload.pull_request.number;
+            
+              // Find existing comments by this bot to avoid duplication
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.startsWith('## Jest Report')
+            );
+            
+            let body = `## Jest Report\n`;
+            body += "```" + coverageReport + "\n```\n";
+            console.log(failedTests);
+            console.log(thresholds);
+            if(failedTests && !failedTests.includes("None")) {
+              body += `### ❌ Failed Tests\n${failedTests}\n`;
+            }
+            if(thresholds && !thresholds.includes("None")) {
+              body += `### ⚠️ Coverage Thresholds Not Met\n${thresholds}\n`;
+            }
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body
+              });
+            }
