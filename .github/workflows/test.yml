@@ -26,17 +26,47 @@ jobs:
 
       - name: Read coverage summary
         id: coverage
+        if: always()
         run: |
-          echo 'COVERAGE<<EOF' >> $GITHUB_ENV
+          echo 'COVERAGE_REPORT<<EOF' >> $GITHUB_ENV
           cat coverage.txt >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+          
+           # Parse list of failed test titles from JSON output
+          if [ -f jest-results.json ]; then
+            FAILURES=$(jq -r '.testResults[].assertionResults[] | select(.status=="failed") | "- " + .fullName' jest-results.json | xargs -0)
+            if [ -z "$FAILURES" ]; then
+              FAILURES="None 🎉"
+            fi
+          else
+            FAILURES="Test result file not found!"
+          fi
+          
+          echo "FAILED_TESTS<<EOF" >> $GITHUB_ENV
+          echo "$FAILURES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          # Parse coverage threshold failures from jest-results.json message (if any)
+          if [ -f jest-results.json ]; then
+            THRESHOLDS=$(jq -r '.testResults[] | select(.message | test("coverage threshold")) | .message' jest-results.json)
+            if [ -z "$THRESHOLDS" ]; then
+              THRESHOLDS="None 🎉"
+            fi
+          else
+            THRESHOLDS="Threshold data not found!"
+          fi
+          echo "COVERAGE_THRESHOLDS<<EOF" >> $GITHUB_ENV
+          echo "$THRESHOLDS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Comment coverage on PR
         if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const coverageReport = process.env.COVERAGE;
+            const coverageReport = process.env.COVERAGE_REPORT;
+            const failedTests = process.env.FAILED_TESTS || "";
+            const thresholds = process.env.COVERAGE_THRESHOLDS || "";
             const prNumber = context.payload.pull_request.number;
             
               // Find existing comments by this bot to avoid duplication
@@ -48,15 +78,17 @@ jobs:
             
             const botComment = comments.find(comment =>
               comment.user.type === 'Bot' &&
-              comment.body.startsWith('## Jest Coverage Report')
+              comment.body.startsWith('## Jest Report')
             );
             
-            const body = [
-              '## Jest Coverage Report',
-              '```',
-              coverageReport,
-              '```'
-            ].join('\n');
+            let body = `## Jest Report\n`;
+            body += "```" + coverageReport + "\n```\n";
+            if(failedTests && !failedTests.includes("None")) {
+              body += `### ❌ Failed Tests\n${failedTests}\n`;
+            }
+            if(thresholds && !thresholds.includes("None")) {
+              body += `### ⚠️ Coverage Thresholds Not Met\n${thresholds}\n`;
+            }
             
             if (botComment) {
               await github.rest.issues.updateComment({
