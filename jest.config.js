@@ -9,6 +9,10 @@ module.exports = {
         ...tsJestTransformCfg,
     },
     testMatch: ["<rootDir>/test/**/*.spec.ts"],
+    collectCoverage: true,
+    collectCoverageFrom: [
+        'src/**/*.ts',
+    ],
     coverageThreshold: {
         global: {
             branches: 50,
