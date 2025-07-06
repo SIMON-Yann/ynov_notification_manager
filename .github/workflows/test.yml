@@ -47,6 +47,9 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           
           THRESHOLDS=$(grep 'coverage threshold' jest.console.txt)
+          if [ -z "$THRESHOLDS" ]; then
+            THRESHOLDS="None"
+          fi
           echo "COVERAGE_THRESHOLDS<<EOF" >> $GITHUB_ENV
           echo "$THRESHOLDS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -75,8 +78,6 @@ jobs:
             
             let body = `## Jest Report\n`;
             body += "```" + coverageReport + "\n```\n";
-            console.log(failedTests);
-            console.log(thresholds);
             if(failedTests && !failedTests.includes("None")) {
               body += `### ❌ Failed Tests\n${failedTests}\n`;
             }
