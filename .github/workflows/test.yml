@@ -11,35 +11,65 @@ on:
 
 jobs:
   test:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js 22.11.0
-      id: test
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.11.0'
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm run test:report
-    
-    - name: Read coverage summary
-      id: coverage
-      run: |
-        echo 'COVERAGE<<EOF' >> $GITHUB_ENV
-        cat coverage.txt >> $GITHUB_ENV
-        echo 'EOF' >> $GITHUB_ENV
-        - uses: actions/github-script@v7
-          if: success()
-          with:
-            script: |
-              const coverageReport = process.env.COVERAGE;
-                github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: coverageReport
-                })
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22.11.0
+        id: test
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm run test:report
+
+      - name: Read coverage summary
+        id: coverage
+        run: |
+          echo 'COVERAGE<<EOF' >> $GITHUB_ENV
+          cat coverage.txt >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Comment coverage on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverageReport = process.env.COVERAGE;
+            const prNumber = context.payload.pull_request.number;
+            
+              // Find existing comments by this bot to avoid duplication
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.startsWith('## Jest Coverage Report')
+            );
+            
+            const body = [
+              '## Jest Coverage Report',
+              '```',
+              coverageReport,
+              '```'
+            ].join('\n');
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body
+              });
+            }
