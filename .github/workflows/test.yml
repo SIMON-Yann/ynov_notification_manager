@@ -29,7 +29,7 @@ jobs:
         if: always()
         run: |
           echo 'COVERAGE_REPORT<<EOF' >> $GITHUB_ENV
-          cat coverage.txt >> $GITHUB_ENV
+          cat coverage/coverage.txt >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
           
            # Parse list of failed test titles from JSON output
