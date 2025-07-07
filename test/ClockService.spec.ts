@@ -12,7 +12,7 @@ describe('ClockService', () => {
       //test
       const result = clockservice.sameDay(date1, date2);
 
-      //assertion
+      //assertion + test
       expect(result).toBe(true)
     });
     it('should return false when both date are in different day', () => {
