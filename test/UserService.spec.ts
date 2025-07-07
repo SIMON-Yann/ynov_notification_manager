@@ -101,9 +101,14 @@ describe('UserService', () => {
         notificationFrequency: 'immediate'
       });
     })
-    it('Should return null if user doesn\'t exist', () => {
+    it('Should return default settings if user doesn\'t exist', () => {
       const userService = new UserService();
-      expect(userService.getUserSettings('123')).toBeNull();
+      expect(userService.getUserSettings('123')).toEqual({
+        "notificationEnabled": true,
+        "notificationByEmail": true,
+        "notificationBySms": false,
+        "notificationFrequency": "immediate"
+      });
     })
     it('Should return default settings if user didn\'t set his settings', () => {
       const userService = new UserService();
@@ -129,9 +134,9 @@ describe('UserService', () => {
         errors: []
       };
       userService.addUser(user);
-      
-      userService.cannotSendNotification({userId:'123',error:'new error'})
-      
+
+      userService.cannotSendNotification({userId: '123', error: 'new error'})
+
       expect(user.errors).toHaveLength(1)
       expect(user.errors[0]).toBe('new error');
     })
