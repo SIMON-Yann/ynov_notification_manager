@@ -35,7 +35,12 @@ export default class UserService {
 
   getUserSettings(userId: string): Settings | null {
     const user = this.users[userId];
-    if (!user) return null;
+    if (!user) return {
+      notificationEnabled: true,
+      notificationByEmail: true,
+      notificationBySms: false,
+      notificationFrequency: 'immediate'
+    };
     return user.settings || {
       notificationEnabled: true,
       notificationByEmail: true,
